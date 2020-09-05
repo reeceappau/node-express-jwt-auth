@@ -6,6 +6,16 @@ const handleErrors = (err) => {
     console.log(err.message, err.code);
     let errors = { email: "", password: "" };
 
+    //incorrect email
+    if (err.message === "Incorrect email") {
+        errors.email = "Email not found, please sign up.";
+    }
+
+    //incorrect password
+    if (err.message === "Incorrect password") {
+        errors.password = "Incorrect password";
+    }
+
     // duplicate email error
     if (err.code === 11000) {
         errors.email = "that email is already registered";
@@ -61,6 +71,16 @@ module.exports.signup_post = async (req, res) => {
 module.exports.login_post = async (req, res) => {
     const { email, password } = req.body;
 
-    console.log(email, password);
-    res.send("user login");
+    try {
+        const user = await User.login(email, password);
+        const token = createToken(user._id);
+        res.cookie("jwt", token, {
+            httpOnly: true,
+            maxAge: 3 * 24 * 60 * 60 * 1000,
+        });
+        res.status(200).json({ user: user._id });
+    } catch (error) {
+        const errors = handleErrors(error);
+        res.status(400).json({ errors });
+    }
 };
